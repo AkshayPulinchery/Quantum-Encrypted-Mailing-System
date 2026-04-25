@@ -98,13 +98,14 @@ export interface BlockchainEmail {
   timestamp: number;
   isQuantum?: boolean;
   isDestructive?: boolean;
+  isAnonymous?: boolean;
 }
 
 interface EmailContextType {
   emails: BlockchainEmail[];
   loading: boolean;
   error: string | null;
-  sendEmail: (to: string, subject: string, body: string, isQuantum?: boolean, isDestructive?: boolean) => Promise<string | void>;
+  sendEmail: (to: string, subject: string, body: string, isQuantum?: boolean, isDestructive?: boolean, isAnonymous?: boolean) => Promise<string | void>;
   reply: (threadId: number, subject: string, body: string) => Promise<void>;
   moveEmails: (mailIds: number[], box: number) => Promise<void>;
   refresh: () => Promise<void>;
@@ -153,9 +154,11 @@ async function encryptToFhe(plaintext: string): Promise<{ data: string; proof: s
   }
 }
 
-function shortenAddress(addr: string): string {
-  if (!addr || addr.length < 10) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+function shortenAddress(address: string): string {
+  if (!address) return '';
+  if (address.includes('Anonymous')) return address;
+  if (!address.startsWith('0x')) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 function formatTimestamp(timestamp: number): string {
@@ -374,13 +377,13 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
     setEmails(prev => prev.filter(e => e.id !== id));
   }, []);
 
-  const sendEmail = useCallback(async (to: string, subject: string, body: string, isQuantum: boolean = false, isDestructive: boolean = false) => {
+  const sendEmail = useCallback(async (to: string, subject: string, body: string, isQuantum: boolean = false, isDestructive: boolean = false, isAnonymous: boolean = false) => {
     if (getDemoMode()) {
       const userId = getUserId();
       
       const mockEmail: BlockchainEmail = {
         id: Date.now(),
-        from: userId,
+        from: isAnonymous ? 'Anonymous (via CuteMail)' : userId,
         to: to,
         subject: subject,
         body: body,
@@ -388,7 +391,8 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
         mailbox: BOXES.SENT,
         timestamp: Date.now(),
         isQuantum: isQuantum,
-        isDestructive: isDestructive
+        isDestructive: isDestructive,
+        isAnonymous: isAnonymous
       };
       setEmails(prev => [mockEmail, ...prev]);
       setLoading(false);

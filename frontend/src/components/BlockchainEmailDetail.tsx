@@ -203,6 +203,11 @@ export function BlockchainEmailDetail({ selectedId, isDemo = false }: EmailDetai
             <span className="font-black">
               {isSentByMe ? `To: ${shortenAddress(email.to)}` : `From: ${shortenAddress(email.from)}`}
             </span>
+            {email.isAnonymous && !isSentByMe && (
+              <span className="bg-blue-100 text-blue-600 text-[10px] font-black px-2 py-0.5 border-[1px] border-blue-600 rounded-full w-fit mt-1">
+                SENDER IDENTITY MASKED
+              </span>
+            )}
             <span className="font-bold text-gray-500 text-sm">
               {isSentByMe ? 'Sent' : 'Received'} • {formatTimestamp(email.timestamp)}
             </span>

@@ -23,6 +23,7 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [isQuantum, setIsQuantum] = useState(true);
   const [isDestructive, setIsDestructive] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [demoMode, setDemoMode] = useState(true);
   const [sentCode, setSentCode] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -89,7 +90,7 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
     setError(null);
     
     try {
-      const result = await sendEmail(to, subject, body, isQuantum, isDestructive);
+      const result = await sendEmail(to, subject, body, isQuantum, isDestructive, isAnonymous);
       if (demoMode && typeof result === 'string') {
         setSentCode(result);
       } else {
@@ -295,6 +296,21 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
                   onChange={() => setIsDestructive(!isDestructive)}
                 />
                 {isDestructive ? '💣 DESTRUCTIVE ON' : '💣 DESTRUCTIVE OFF'}
+              </label>
+
+              <label 
+                className={cn(
+                  "flex items-center gap-2 cursor-pointer p-2 border-[2px] border-black font-bold text-xs select-none transition-colors",
+                  isAnonymous ? "bg-blue-300" : "bg-white"
+                )}
+              >
+                <input 
+                  type="checkbox" 
+                  className="hidden" 
+                  checked={isAnonymous}
+                  onChange={() => setIsAnonymous(!isAnonymous)}
+                />
+                {isAnonymous ? '👤 ANON MODE ON' : '👤 ANON MODE OFF'}
               </label>
             </div>
             
