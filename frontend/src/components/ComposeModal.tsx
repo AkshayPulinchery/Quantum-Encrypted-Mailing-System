@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Sparkles, Send, RefreshCcw, Loader2, CheckCircle } from 'lucide-react';
+import { X, Sparkles, Send, RefreshCcw, Loader2, CheckCircle, SpellCheck } from 'lucide-react';
 import { brutalBorder, brutalShadowNoHover, cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api, walletToEmail } from '@/lib/api';
@@ -25,6 +25,20 @@ export function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent?
       const result = await api.ai.generateEmail(prompt, tone);
       if (!subject) setSubject(result.subject);
       setBody(result.body);
+    } catch {
+      setError('AI unavailable — check backend is running.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleFixGrammar = async () => {
+    if (!body) return;
+    setIsGenerating(true);
+    setError('');
+    try {
+      const result = await api.ai.fixGrammar(body);
+      setBody(result.corrected);
     } catch {
       setError('AI unavailable — check backend is running.');
     } finally {
@@ -122,6 +136,14 @@ export function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent?
             >
               {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
               Write with AI
+            </button>
+            <button
+              onClick={handleFixGrammar}
+              disabled={isGenerating || !body || isSending}
+              className="bg-[var(--color-retro-green)] px-3 py-2 font-bold flex items-center gap-2 border-[2px] border-black shadow-[2px_2px_0_0_black] active:translate-x-1 active:translate-y-1 active:shadow-none min-w-fit disabled:opacity-50"
+            >
+              {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <SpellCheck size={18} />}
+              Fix Grammar
             </button>
             <div className="flex items-center gap-2 border-[2px] border-black shadow-[2px_2px_0_0_black] bg-white p-1">
               <select

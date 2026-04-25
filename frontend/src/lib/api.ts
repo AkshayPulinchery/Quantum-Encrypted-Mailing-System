@@ -20,13 +20,22 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || err.detail || err.message || `HTTP ${res.status}`);
+    // DRF field errors arrive as { field: ["msg", ...] } — flatten to the first string
+    const fieldMsg = Object.values(err as Record<string, unknown>)
+      .flat()
+      .find((v): v is string => typeof v === 'string');
+    throw new Error(err.error || err.detail || err.message || fieldMsg || `HTTP ${res.status}`);
   }
   if (res.status === 204) return undefined as T;
   return res.json();
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export interface User {
   id: number;
@@ -103,21 +112,37 @@ export const api = {
   },
 
   ai: {
-    generateEmail: (prompt: string, tone = 'professional') =>
+    generateEmail: (prompt: string, tone = 'professional', provider = 'openai') =>
       request<{ subject: string; body: string }>(
-        '/api/ai/generate-email/', { method: 'POST', body: JSON.stringify({ prompt, tone }) }
+        '/api/ai/generate-email/', { method: 'POST', body: JSON.stringify({ prompt, tone, provider }) }
       ),
-    rewrite: (text: string, tone = 'professional') =>
+    rewrite: (text: string, tone = 'professional', provider = 'openai') =>
       request<{ rewritten: string }>(
-        '/api/ai/rewrite/', { method: 'POST', body: JSON.stringify({ text, tone }) }
+        '/api/ai/rewrite/', { method: 'POST', body: JSON.stringify({ text, tone, provider }) }
       ),
-    summarize: (text: string) =>
-      request<{ summary: string }>(
-        '/api/ai/summarize/', { method: 'POST', body: JSON.stringify({ text }) }
+    fixGrammar: (text: string, provider = 'openai') =>
+      request<{ corrected: string }>(
+        '/api/ai/fix-grammar/', { method: 'POST', body: JSON.stringify({ text, provider }) }
       ),
-    spamCheck: (text: string) =>
+    summarize: (text: string, provider = 'openai') =>
+      request<{ summary: string; action_items: string[] }>(
+        '/api/ai/summarize/', { method: 'POST', body: JSON.stringify({ text, provider }) }
+      ),
+    spamCheck: (text: string, provider = 'openai') =>
       request<{ is_spam: boolean; confidence: number; reason: string }>(
-        '/api/ai/spam-check/', { method: 'POST', body: JSON.stringify({ text }) }
+        '/api/ai/spam-check/', { method: 'POST', body: JSON.stringify({ text, provider }) }
+      ),
+    categorize: (text: string, provider = 'openai') =>
+      request<{ category: string }>(
+        '/api/ai/categorize/', { method: 'POST', body: JSON.stringify({ text, provider }) }
+      ),
+    semanticSearch: (query: string, snippet: string, provider = 'openai') =>
+      request<{ relevance: number; matched_reason: string }>(
+        '/api/ai/semantic-relevance/', { method: 'POST', body: JSON.stringify({ query, snippet, provider }) }
+      ),
+    chat: (conversation: ChatMessage[], instruction: string, provider = 'openai') =>
+      request<{ reply: string }>(
+        '/api/ai/chat/', { method: 'POST', body: JSON.stringify({ conversation, instruction, provider }) }
       ),
   },
 };

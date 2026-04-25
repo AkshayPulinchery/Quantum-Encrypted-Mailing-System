@@ -8,7 +8,9 @@ User = get_user_model()
 
 class SendEmailSerializer(serializers.Serializer):
     """Validates the payload when sending an encrypted email."""
-    receiver_email = serializers.EmailField()
+    # CharField instead of EmailField — Django's validator rejects .eth TLDs
+    # used by our wallet-identity scheme (0x...@cutemail.eth).
+    receiver_email = serializers.CharField()
     subject_encrypted = serializers.CharField()
     body_encrypted = serializers.CharField()
     encrypted_key = serializers.CharField()
