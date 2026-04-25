@@ -17,42 +17,41 @@ export class QuantumCrypto {
       const p = char.charCodeAt(0);
       const k = key[i % key.length];
       
-      // Simulate quantum phase shift
-      const h = 6.626; // Planck's constant approximation
-      const phase = (p * k * this.PHI) % (2 * Math.PI);
+      // Phase Shift: Deterministic shift based on index and key
+      // This ensures 1-to-1 mapping (bijection)
+      const h = 6.626; 
+      const phase = (i * k * this.PHI) % (2 * Math.PI);
       const shift = Math.floor(h * Math.sin(phase) + k);
       
       return String.fromCharCode((p + shift) % 256);
     }).join('');
     
-    return btoa(result);
+    // Use a URL-safe Base64 approach or standard btoa 
+    // Ensure binary safety for Unicode characters
+    return btoa(unescape(encodeURIComponent(result)));
   }
 
-  /**
-   * Decrypts a string using the inverse Phase Rotation
-   */
   static decrypt(encryptedBase64: string, seed: string): string {
     try {
-      const text = atob(encryptedBase64);
+      const text = decodeURIComponent(escape(atob(encryptedBase64)));
       const key = this.generateQuantumKey(seed);
       
       return text.split('').map((char, i) => {
         const c = char.charCodeAt(0);
         const k = key[i % key.length];
         
-        // Find p such that (p + shift) % 256 == c
-        // We iterate 256 possibilities (Quantum superposition simulation) to find the collapsed state
-        for (let p = 0; p < 256; p++) {
-          const h = 6.626;
-          const phase = (p * k * this.PHI) % (2 * Math.PI);
-          const shift = Math.floor(h * Math.sin(phase) + k);
-          if ((p + shift) % 256 === c) {
-            return String.fromCharCode(p);
-          }
-        }
-        return '?';
+        const h = 6.626;
+        const phase = (i * k * this.PHI) % (2 * Math.PI);
+        const shift = Math.floor(h * Math.sin(phase) + k);
+        
+        // Inverse: (c - shift) mod 256
+        let p = (c - shift) % 256;
+        if (p < 0) p += 256;
+        
+        return String.fromCharCode(p);
       }).join('');
-    } catch {
+    } catch (e) {
+      console.error('Decryption Error:', e);
       return "[Decryption Failed - Wavefunction Collapsed]";
     }
   }

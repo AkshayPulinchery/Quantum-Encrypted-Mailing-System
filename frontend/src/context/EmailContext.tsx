@@ -21,24 +21,29 @@ function encodeEmail(email: BlockchainEmail): string {
   const signature = Math.random().toString(36).substr(2, 12);
   const dataToEncode = { ...email, signature, used: false };
   
-  // If quantum, we encrypt the body again with the quantum formula
   if (email.isQuantum) {
     dataToEncode.body = QuantumCrypto.encrypt(email.body, QUANTUM_SEED);
     dataToEncode.subject = `[QUANTUM] ${email.subject}`;
   }
   
-  return btoa(JSON.stringify(dataToEncode));
+  // Unicode-safe Base64 encoding
+  const jsonStr = JSON.stringify(dataToEncode);
+  return btoa(unescape(encodeURIComponent(jsonStr)));
 }
 
 function decodeEmail(code: string): { email: BlockchainEmail | null; signature: string | null; used: boolean } {
   try {
-    const data = JSON.parse(atob(code));
+    // Unicode-safe Base64 decoding
+    const jsonStr = decodeURIComponent(escape(atob(code)));
+    const data = JSON.parse(jsonStr);
+    
     if (data.isQuantum) {
       data.body = QuantumCrypto.decrypt(data.body, QUANTUM_SEED);
       data.subject = data.subject.replace('[QUANTUM] ', '');
     }
     return { email: data, signature: data.signature, used: data.used };
-  } catch {
+  } catch (err) {
+    console.error('Decode Error:', err);
     return { email: null, signature: null, used: false };
   }
 }
