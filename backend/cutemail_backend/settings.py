@@ -122,5 +122,7 @@ SIMPLE_JWT = {
 # In production, replace True with a list of allowed origins
 CORS_ALLOW_ALL_ORIGINS = True
 
-# OPENAI (optional — mock responses are used if this is empty)
+# AI PROVIDERS (optional — mock responses are used when keys are absent)
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+# Accept HF_TOKEN or QWEN_KEY (both refer to a HuggingFace API token)
+HF_TOKEN       = os.getenv('HF_TOKEN', '') or os.getenv('QWEN_KEY', '')
