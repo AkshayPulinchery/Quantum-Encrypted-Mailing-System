@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { MOCK_EMAILS } from './EmailList';
-import { AlertTriangle, Sparkles, User, KeyRound, Bomb, Rocket } from 'lucide-react';
+import { AlertTriangle, Sparkles, User, KeyRound, Bomb, Rocket, Loader2, ShieldAlert } from 'lucide-react';
 import { cn, brutalBorder, brutalShadowNoHover } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/context/UserContext';
+import { summarizePlaintext, spamCheckPlaintext } from '@/lib/ai/ai-client';
 
 export function EmailDetail({ selectedId }: { selectedId: number | null }) {
   const [summary, setSummary] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function EmailDetail({ selectedId }: { selectedId: number | null }) {
       // but we should mark it as destroyed globally.
       destroyEmail(lastViewedDestructive);
     }
-    
+
     if (email?.isDestructive) {
       setLastViewedDestructive(selectedId);
     } else {
@@ -44,13 +45,19 @@ export function EmailDetail({ selectedId }: { selectedId: number | null }) {
 
   if (!email) return null;
 
-  const handleSummarize = () => {
+  const handleSummarize = async () => {
     setIsGenerating(true);
     setSummary(null);
-    setTimeout(() => {
-      setSummary("AI Summary: The sender is requesting action regarding hackathon models or sharing draft reviews. Action might be required.");
+    try {
+      // Use the plaintext content (from mock data for now)
+      // In production, this would decrypt the email first
+      const result = await summarizePlaintext(email.content);
+      setSummary(result.summary);
+    } catch {
+      setSummary('⚠️ AI summarization failed. Please try again.');
+    } finally {
       setIsGenerating(false);
-    }, 1500);
+    }
   };
 
   const triggerDestruction = () => {
@@ -59,22 +66,22 @@ export function EmailDetail({ selectedId }: { selectedId: number | null }) {
     setTimeout(() => {
       destroyEmail(selectedId);
       setIsDestroying(false);
-    }, 2000); 
+    }, 2000);
   };
 
   return (
     <div className="flex-1 h-full bg-[var(--color-retro-white)] flex flex-col overflow-auto relative">
       <AnimatePresence>
         {isDestroying && (
-          <motion.div 
+          <motion.div
             initial={{ x: '100%', y: '-100%', rotate: 135, scale: 2 }}
             animate={{ x: '0%', y: '0%', rotate: 135, scale: 1 }}
-            transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }} 
+            transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
             className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center overflow-hidden"
           >
             <div className="relative">
               <Rocket size={150} className="text-black fill-[var(--color-retro-yellow)] border-[4px] border-black p-2 bg-white shadow-[8px_8px_0_0_black]" />
-              <motion.div 
+              <motion.div
                 animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
                 transition={{ repeat: Infinity, duration: 0.1 }}
                 className="absolute -top-10 -right-10 w-20 h-20 bg-orange-500 rounded-full blur-2xl"
@@ -86,34 +93,34 @@ export function EmailDetail({ selectedId }: { selectedId: number | null }) {
 
       <AnimatePresence>
         {isDestroying && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 1 }}
             className="absolute inset-0 z-40 bg-white/20 backdrop-blur-sm overflow-hidden"
           >
-             <div className="relative w-full h-full">
-                {Array.from({ length: 60 }).map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ x: '50%', y: '50%', opacity: 1, scale: 1 }}
-                    animate={{ 
-                      x: `${50 + (Math.random() - 0.5) * 200}%`, 
-                      y: `${50 + (Math.random() - 0.5) * 200}%`,
-                      rotate: Math.random() * 720,
-                      scale: 0,
-                      opacity: 0
-                    }}
-                    transition={{ duration: 1, delay: 0.7, ease: "easeOut" }}
-                    className="absolute w-12 h-12 bg-black border-[2px] border-[var(--color-retro-pink)] shadow-[4px_4px_0_0_black]"
-                    style={{ left: '-24px', top: '-24px' }}
-                  />
-                ))}
-                <motion.div 
-                   initial={{ scale: 0, opacity: 0 }}
-                   animate={{ scale: [0, 4, 0], opacity: [0, 1, 0] }}
-                   transition={{ duration: 0.5, delay: 0.6 }}
-                   className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white rounded-full z-50"
+            <div className="relative w-full h-full">
+              {Array.from({ length: 60 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ x: '50%', y: '50%', opacity: 1, scale: 1 }}
+                  animate={{
+                    x: `${50 + (Math.random() - 0.5) * 200}%`,
+                    y: `${50 + (Math.random() - 0.5) * 200}%`,
+                    rotate: Math.random() * 720,
+                    scale: 0,
+                    opacity: 0
+                  }}
+                  transition={{ duration: 1, delay: 0.7, ease: "easeOut" }}
+                  className="absolute w-12 h-12 bg-black border-[2px] border-[var(--color-retro-pink)] shadow-[4px_4px_0_0_black]"
+                  style={{ left: '-24px', top: '-24px' }}
                 />
-             </div>
+              ))}
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [0, 4, 0], opacity: [0, 1, 0] }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white rounded-full z-50"
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -128,7 +135,7 @@ export function EmailDetail({ selectedId }: { selectedId: number | null }) {
               <span className="font-bold text-sm">Vaporization triggers automatically on close.</span>
             </div>
           </div>
-          <button 
+          <button
             onClick={triggerDestruction}
             className="bg-black text-white px-4 py-2 font-black uppercase text-xs border-[2px] border-white shadow-[3px_3px_0_0_white] hover:bg-red-600 transition-colors"
           >
@@ -172,7 +179,7 @@ export function EmailDetail({ selectedId }: { selectedId: number | null }) {
 
         {/* AI Action */}
         <div className="flex items-center gap-4 mt-4">
-          <button 
+          <button
             onClick={handleSummarize}
             disabled={isGenerating || email.isDestructive}
             className="bg-[var(--color-retro-pink)] px-4 py-2 font-black uppercase flex items-center gap-2 border-[3px] border-black shadow-[4px_4px_0_0_black] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50"
@@ -182,7 +189,7 @@ export function EmailDetail({ selectedId }: { selectedId: number | null }) {
         </div>
 
         {isGenerating && (
-           <div className="font-bold text-gray-500 animate-pulse">Running zk-ML summary model...</div>
+          <div className="font-bold text-gray-500 animate-pulse">Running zk-ML summary model...</div>
         )}
 
         {summary && (
@@ -201,12 +208,12 @@ export function EmailDetail({ selectedId }: { selectedId: number | null }) {
 
         {email.isDestructive && (
           <div className="mt-auto border-t-[4px] border-black pt-8 flex justify-center pb-8">
-             <button 
-                onClick={triggerDestruction}
-                className="bg-[var(--color-retro-yellow)] p-6 font-black uppercase text-2xl border-[4px] border-black shadow-[8px_8px_0_0_black] hover:bg-black hover:text-white transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"
-              >
-                I am done reading. VAPORIZE NOW!
-             </button>
+            <button
+              onClick={triggerDestruction}
+              className="bg-[var(--color-retro-yellow)] p-6 font-black uppercase text-2xl border-[4px] border-black shadow-[8px_8px_0_0_black] hover:bg-black hover:text-white transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"
+            >
+              I am done reading. VAPORIZE NOW!
+            </button>
           </div>
         )}
       </div>

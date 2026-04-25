@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'accounts',
     'mails',
     'ai_tools',
+    'encryption',
 ]
 
 MIDDLEWARE = [
@@ -50,6 +51,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Custom — prevent encrypted data from leaking into logs
+    'encryption.middleware.NoPlaintextLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'cutemail_backend.urls'
